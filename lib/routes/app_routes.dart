@@ -7,7 +7,6 @@ import 'package:tryde_partner/features/auth/screens/otp_screen.dart';
 import 'package:tryde_partner/features/auth/screens/registration_screen.dart';
 import 'package:tryde_partner/features/auth/screens/role_selection_screen.dart';
 import 'package:tryde_partner/features/auth/screens/splash_screen.dart';
-import 'package:tryde_partner/features/customer/porter/screens/porter-dashboard_screen.dart';
 import 'package:tryde_partner/features/customer/porter/screens/porter_search_screen.dart';
 import 'package:tryde_partner/features/customer/porter/screens/porter_sharing_screen.dart';
 import 'package:tryde_partner/features/customer/porter/screens/porter_submit_screen.dart';
@@ -20,7 +19,6 @@ import 'package:tryde_partner/features/customer/ride/search/track_ride_screen.da
 import 'package:tryde_partner/features/customer/screens/history_screen.dart';
 import 'package:tryde_partner/features/customer/screens/overview_screen.dart';
 import 'package:tryde_partner/features/customer/screens/account_screen.dart';
-import 'package:tryde_partner/features/porter_partner/screens/porter_dashboard_screen.dart';
 import 'package:tryde_partner/features/settings/screens/language_screen.dart';
 import 'package:tryde_partner/features/settings/screens/notification_screen.dart';
 import 'package:tryde_partner/features/settings/screens/payment_screen.dart';
@@ -28,7 +26,9 @@ import 'package:tryde_partner/features/settings/screens/ride_sharing_screen.dart
 import 'package:tryde_partner/features/settings/screens/settings_screen.dart';
 import 'package:tryde_partner/features/settings/screens/profile_screen.dart';
 import 'package:tryde_partner/features/settings/screens/theme_screen.dart';
-
+import '../features/customer/porter/screens/porter-dashboard_screen.dart';
+import '../features/food/driver_dashboard.dart';
+import '../features/porter_partner/screens/porter_dashboard_screen.dart';
 import '../features/rider/first.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -112,6 +112,11 @@ final GoRouter appRouter = GoRouter(
       path: AppConstants.routePorter,
       name: 'porter',
       builder: (context, state) => const PorterDashboardScreen(),
+    ),
+    GoRoute(
+      path: AppConstants.routeFood,
+      name: 'food',
+      builder: (context, state) => const PartnerDashboardScreen(),
     ),
     GoRoute(
       path: '${AppConstants.routePorterSearch}/:vehicle',

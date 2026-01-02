@@ -13,6 +13,7 @@
     <!-- Android 13+ ke liye ye bhi add karo (recommended) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
+
     <application
         android:label="Tryde Partner"
         android:name="${applicationName}"

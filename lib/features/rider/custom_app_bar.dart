@@ -131,7 +131,7 @@ class _DutySwitchState extends State<DutySwitch> {
             /// TEXT
             Center(
               child: Text(
-                isOnDuty ? "ON DUTY" : "OFF DUTY",
+                isOnDuty ? "ON" : "OFF",
                 style: TextStyle(
                   color: isOnDuty ? Colors.white : Colors.black54,
                   fontWeight: FontWeight.w600,

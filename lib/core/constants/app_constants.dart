@@ -30,7 +30,8 @@ class AppConstants {
   static const String routePorterSearch = '/porter-search';
   static const String routePorterSubmit = '/porter-order-submit';
   static const String routeRideSharing = '/ride-sharing';
-  
+  static const String routeFood ='/food';
+
 
 
 }

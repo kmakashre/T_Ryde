@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tryde_partner/core/constants/color_constants.dart';
 
+import '../../../core/constants/app_constants.dart';
+
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
 
@@ -13,7 +15,10 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final PageController _pageController = PageController();
   int _currentStep = 0;
-  
+
+  // 🔹 ROLE BASED PRIMARY COLOR
+  Color _primaryColor = AppColors.primary;
+
   // Form Controllers
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -24,26 +29,89 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _pincodeController = TextEditingController();
   final TextEditingController _aadharController = TextEditingController();
   final TextEditingController _panController = TextEditingController();
-  
+
   String? _gender;
   String? _selectedVehicleType;
-  
+
   final List<String> _genderOptions = ['Male', 'Female', 'Other'];
-  final List<String> _vehicleTypes = [
-    'Motorcycle',
-    'Car',
-    'Auto Rickshaw',
-    'Mini Truck',
-    'Truck'
-  ];
-  
-  final List<String> _steps = [
-    'Personal',
-    'Address',
-    'Aadhar/PAN',
-    'Vehicle',
-    'Documents'
-  ];
+  List<String> get _vehicleTypes {
+    if (_userRole == 'food') {
+      return ['Motorcycle']; // 🍔 FOOD → ONLY BIKE
+    }
+    return [
+      'Motorcycle',
+      'Car',
+      'Auto Rickshaw',
+      'Mini Truck',
+      'Truck',
+    ];
+  }
+
+
+  List<String> get _steps {
+    if (_userRole == 'food') {
+      return [
+        'Personal',
+        'Address',
+        'Aadhar/PAN',
+        'Documents',
+      ];
+    }
+    return [
+      'Personal',
+      'Address',
+      'Aadhar/PAN',
+      'Vehicle',
+      'Documents',
+    ];
+  }
+
+
+  String? _userRole;
+
+  bool _acceptTerms = false;
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked != null) {
+      _dateOfBirthController.text =
+      '${picked.day}/${picked.month}/${picked.year}';
+    }
+  }
+
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoleColor();
+  }
+
+  /// 🔹 LOAD ROLE & SET COLOR
+  Future<void> _loadRoleColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString('user_role');
+
+    setState(() {
+      _userRole = role; // ✅ STORE ROLE
+
+      if (role == 'rider') {
+        _primaryColor = const Color(0xFF2196F3);
+      } else if (role == 'porter') {
+        _primaryColor = const Color(0xFF5A189A);
+      } else if (role == 'food') {
+        _primaryColor = const Color(0xffD66D26);
+      } else {
+        _primaryColor = AppColors.primary;
+      }
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +119,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       backgroundColor: AppColors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: _primaryColor),
           onPressed: () => context.pop(),
         ),
         backgroundColor: Colors.transparent,
@@ -67,10 +135,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       ),
       body: Column(
         children: [
-          // Progress Bar
           _buildProgressBar(),
-          
-          // Step Title
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
@@ -84,47 +150,37 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     color: AppColors.textPrimary,
                   ),
                 ),
-                Text(
-                  'Step ${_currentStep + 1}/5',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                Text('Step ${_currentStep + 1}/${_steps.length}')
+
               ],
             ),
           ),
-          
-          // Page View for Steps
+
           Expanded(
             child: PageView(
               controller: _pageController,
               physics: const NeverScrollableScrollPhysics(),
               onPageChanged: (index) {
-                setState(() {
-                  _currentStep = index;
-                });
+                setState(() => _currentStep = index);
               },
-              children: [
-                // Step 1: Personal Information
+              children: _userRole == 'food'
+                  ? [
                 _buildPersonalInfoStep(),
-                
-                // Step 2: Address
                 _buildAddressStep(),
-                
-                // Step 3: Aadhar & PAN
                 _buildAadharPanStep(),
-                
-                // Step 4: Vehicle Type
+                _buildDocumentsStep(), // 🚫 Vehicle skipped
+              ]
+                  : [
+                _buildPersonalInfoStep(),
+                _buildAddressStep(),
+                _buildAadharPanStep(),
                 _buildVehicleStep(),
-                
-                // Step 5: Documents
                 _buildDocumentsStep(),
               ],
+
             ),
           ),
-          
-          // Navigation Buttons
+
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -135,34 +191,45 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       onPressed: _goToPreviousStep,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: _primaryColor),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: AppColors.primary),
                       ),
                       child: Text(
                         'Back',
                         style: TextStyle(
-                          color: AppColors.primary,
+                          color: _primaryColor,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ),
+
                 if (_currentStep > 0) const SizedBox(width: 12),
+
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _goToNextStep,
+                    // 🔥 TERMS CONDITION APPLY ONLY ON LAST STEP
+                    onPressed:
+                    (_currentStep == _steps.length - 1 && !_acceptTerms)
+                        ? null
+                        : _goToNextStep,
+
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor:
+                      (_currentStep == _steps.length - 1 && !_acceptTerms)
+                          ? _primaryColor.withOpacity(0.5)
+                          : _primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: Text(
-                      _currentStep == 4 ? 'Submit' : 'Next',
+                      // 🔥 ROLE SAFE SUBMIT TEXT
+                      _currentStep == _steps.length - 1 ? 'Submit' : 'Next',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -174,43 +241,42 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ],
             ),
           ),
+
         ],
       ),
     );
   }
+
+  // ================= HELPERS =================
 
   Widget _buildProgressBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         children: [
-          // Step Labels
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: _steps.asMap().entries.map((entry) {
               final index = entry.key;
-              final step = entry.value;
               return Column(
                 children: [
                   Text(
-                    step,
+                    entry.value,
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: index <= _currentStep 
-                          ? AppColors.primary 
+                      color: index <= _currentStep
+                          ? _primaryColor
                           : Colors.grey.shade400,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // Step Indicator
                   Container(
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: index <= _currentStep 
-                          ? AppColors.primary 
+                      color: index <= _currentStep
+                          ? _primaryColor
                           : Colors.grey.shade300,
                     ),
                   ),
@@ -218,28 +284,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               );
             }).toList(),
           ),
-          
-          // Progress Line
           const SizedBox(height: 4),
-          Stack(
-            children: [
-              Container(
-                height: 2,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                height: 2,
-                width: MediaQuery.of(context).size.width * ((_currentStep + 1) / 5) - 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
-            ],
+          LinearProgressIndicator(
+            value: (_currentStep + 1) / _steps.length,
+            backgroundColor: Colors.grey.shade300,
+            color: _primaryColor,
+            minHeight: 2,
           ),
         ],
       ),
@@ -247,159 +297,147 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   String _getStepTitle() {
+    if (_userRole == 'food') {
+      switch (_currentStep) {
+        case 0:
+          return 'Personal Information';
+        case 1:
+          return 'Address Details';
+        case 2:
+          return 'Aadhar & PAN';
+        case 3:
+          return 'Upload Documents';
+        default:
+          return '';
+      }
+    }
+
+    // NON-FOOD
     switch (_currentStep) {
-      case 0: return 'Personal Information';
-      case 1: return 'Address Details';
-      case 2: return 'Aadhar & PAN';
-      case 3: return 'Vehicle Type';
-      case 4: return 'Upload Documents';
-      default: return '';
+      case 0:
+        return 'Personal Information';
+      case 1:
+        return 'Address Details';
+      case 2:
+        return 'Aadhar & PAN';
+      case 3:
+        return 'Vehicle Type';
+      case 4:
+        return 'Upload Documents';
+      default:
+        return '';
     }
   }
 
-  // Step 1: Personal Information
+  void _goToNextStep() {
+    if (_currentStep < _steps.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _showSuccessDialog(); // 🔥 LAST STEP
+    }
+  }
+
+
+  void _goToPreviousStep() {
+    if (_currentStep > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Widget _buildPersonalInfoStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          // Profile Image Upload
-          GestureDetector(
-            onTap: () {
-              // Handle image upload
-            },
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary,
-                  width: 2,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // Placeholder for profile image (centered)
-                  Center(
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primary.withOpacity(0.1),
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primary,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 20,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          const SizedBox(height: 16),
+
+          // Profile Image
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: _primaryColor, width: 2),
             ),
+            child: Icon(Icons.person, size: 60, color: _primaryColor),
           ),
+
           const SizedBox(height: 24),
-          Text(
-            'Upload Profile Photo',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 32),
-          
-          // First Name
+
           _buildTextField(
             controller: _firstNameController,
             label: 'First Name',
-            hintText: 'Enter your first name',
+            hintText: 'Enter first name',
             prefixIcon: Icons.person_outline,
           ),
           const SizedBox(height: 16),
-          
-          // Last Name
+
           _buildTextField(
             controller: _lastNameController,
             label: 'Last Name',
-            hintText: 'Enter your last name',
+            hintText: 'Enter last name',
             prefixIcon: Icons.person_outline,
           ),
           const SizedBox(height: 16),
-          
-          // Date of Birth
+
           _buildTextField(
             controller: _dateOfBirthController,
             label: 'Date of Birth',
             hintText: 'DD/MM/YYYY',
             prefixIcon: Icons.calendar_today,
             readOnly: true,
-            onTap: () {
-              _selectDate();
-            },
+            onTap: _selectDate,
           ),
-          const SizedBox(height: 16),
-          
-          // Gender
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Gender',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
-                 
+
+          const SizedBox(height: 24),
+
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Gender',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          Wrap(
+            spacing: 12,
+            children: _genderOptions.map((g) {
+              final selected = _gender == g;
+              return ChoiceChip(
+                label: Text(g),
+                selected: selected,
+                selectedColor: _primaryColor,
+                labelStyle: TextStyle(
+                  color: selected ? Colors.white : Colors.black,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: _genderOptions.map((gender) {
-                  final isSelected = _gender == gender;
-                  return ChoiceChip(
-                    label: Text(gender),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _gender = selected ? gender : null;
-                      });
-                    },
-                    selectedColor: AppColors.primary,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black,
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
+                onSelected: (_) {
+                  setState(() => _gender = g);
+                },
+              );
+            }).toList(),
           ),
         ],
       ),
     );
   }
 
-  // Step 2: Address
   Widget _buildAddressStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -408,32 +446,32 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           _buildTextField(
             controller: _stateController,
             label: 'State',
-            hintText: 'Enter your state',
-            prefixIcon: Icons.location_on_outlined,
+            hintText: 'Enter state',
+            prefixIcon: Icons.map_outlined,
           ),
           const SizedBox(height: 16),
-          
+
           _buildTextField(
             controller: _districtController,
             label: 'District',
-            hintText: 'Enter your district',
+            hintText: 'Enter district',
             prefixIcon: Icons.location_city_outlined,
           ),
           const SizedBox(height: 16),
-          
+
           _buildTextField(
             controller: _addressController,
             label: 'Address',
-            hintText: 'Enter your full address',
+            hintText: 'Enter address',
             prefixIcon: Icons.home_outlined,
             maxLines: 3,
           ),
           const SizedBox(height: 16),
-          
+
           _buildTextField(
             controller: _pincodeController,
             label: 'Pincode',
-            hintText: 'Enter 6-digit pincode',
+            hintText: '6 digit pincode',
             prefixIcon: Icons.pin_drop_outlined,
             keyboardType: TextInputType.number,
             maxLength: 6,
@@ -442,147 +480,96 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       ),
     );
   }
-
-  // Step 3: Aadhar & PAN
   Widget _buildAadharPanStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          // Aadhar Number
           _buildTextField(
             controller: _aadharController,
             label: 'Aadhar Number',
-            hintText: 'Enter 12-digit Aadhar number',
-            prefixIcon: Icons.credit_card_outlined,
+            hintText: '12 digit Aadhar',
+            prefixIcon: Icons.credit_card,
             keyboardType: TextInputType.number,
             maxLength: 12,
           ),
           const SizedBox(height: 16),
-          
-          // Aadhar Upload
+
           _buildUploadCard(
             title: 'Upload Aadhar Card',
-            subtitle: 'Front & Back (Max 2MB)',
-            onUpload: () {
-              // Handle Aadhar upload
-            },
+            subtitle: 'Front & Back',
+            onUpload: () {},
           ),
           const SizedBox(height: 24),
-          
-          // PAN Number
+
           _buildTextField(
             controller: _panController,
             label: 'PAN Number',
-            hintText: 'Enter PAN number',
-            prefixIcon: Icons.card_membership_outlined,
+            hintText: 'Enter PAN',
+            prefixIcon: Icons.badge_outlined,
             maxLength: 10,
           ),
           const SizedBox(height: 16),
-          
-          // PAN Upload
+
           _buildUploadCard(
             title: 'Upload PAN Card',
-            subtitle: 'Clear image (Max 2MB)',
-            onUpload: () {
-              // Handle PAN upload
-            },
+            subtitle: 'Clear image',
+            onUpload: () {},
           ),
         ],
       ),
     );
   }
 
-  // Step 4: Vehicle Type
   Widget _buildVehicleStep() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Select Your Vehicle Type',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+    return GridView.builder(
+      padding: const EdgeInsets.all(24),
+      itemCount: _vehicleTypes.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 1.2,
+      ),
+      itemBuilder: (_, index) {
+        final vehicle = _vehicleTypes[index];
+        final selected = _selectedVehicleType == vehicle;
+
+        return GestureDetector(
+          onTap: () {
+            setState(() => _selectedVehicleType = vehicle);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected ? _primaryColor : Colors.grey.shade300,
+                width: selected ? 2 : 1,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Choose the vehicle you will be using',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Vehicle Type Grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: _vehicleTypes.length,
-            itemBuilder: (context, index) {
-              final vehicle = _vehicleTypes[index];
-              final isSelected = _selectedVehicleType == vehicle;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedVehicleType = vehicle;
-                  });
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : Colors.grey.shade300,
-                      width: isSelected ? 2 : 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _getVehicleIcon(vehicle),
-                        size: 32,
-                        color: isSelected ? AppColors.primary : Colors.grey.shade600,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        vehicle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _getVehicleIcon(vehicle),
+                  size: 32,
+                  color: selected ? _primaryColor : Colors.grey,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  vehicle,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: selected ? _primaryColor : Colors.black,
                   ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
-
-  // Step 5: Documents
   Widget _buildDocumentsStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -590,66 +577,124 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         children: [
           _buildDocumentUploadCard(
             title: 'Driving Licence',
-            subtitle: 'Upload front & back side',
-            onUpload: () {
-              // Handle DL upload
-            },
+            subtitle: 'Front & Back',
+            onUpload: () {},
           ),
+
           const SizedBox(height: 16),
-          
+
           _buildDocumentUploadCard(
             title: 'Vehicle RC',
-            subtitle: 'Upload Registration Certificate',
-            onUpload: () {
-              // Handle RC upload
-            },
+            subtitle: 'Registration Certificate',
+            onUpload: () {},
           ),
           const SizedBox(height: 16),
-          
+
           _buildDocumentUploadCard(
             title: 'Insurance',
-            subtitle: 'Upload valid insurance document',
-            onUpload: () {
-              // Handle Insurance upload
-            },
-          ),
-          const SizedBox(height: 16),
-          
-          _buildDocumentUploadCard(
-            title: 'Vehicle Photo',
-            subtitle: 'Upload clear vehicle photos',
-            onUpload: () {
-              // Handle Vehicle photo upload
-            },
+            subtitle: 'Valid Insurance',
+            onUpload: () {},
           ),
           const SizedBox(height: 24),
-          
-          // Terms & Conditions
+
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Checkbox(
-                value: false,
-                onChanged: (value) {},
-                activeColor: AppColors.primary,
+                value: _acceptTerms, // ✅ state se control
+                activeColor: _primaryColor,
+                onChanged: (value) {
+                  setState(() {
+                    _acceptTerms = value ?? false;
+                  });
+                },
               ),
-              Expanded(
+              const Expanded(
                 child: Text(
-                  'I agree to the Terms & Conditions and confirm that all information provided is accurate.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
+                  'I agree to Terms & Conditions',
                 ),
               ),
             ],
           ),
+
         ],
       ),
     );
   }
 
-  // Helper Widgets
+  Widget _buildDocumentUploadCard({
+    required String title,
+    required String subtitle,
+    required VoidCallback onUpload,
+  }) {
+    return GestureDetector(
+      onTap: onUpload,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.description_outlined,
+                color: _primaryColor,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: _primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'Upload',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: _primaryColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -682,18 +727,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           onTap: onTap,
           decoration: InputDecoration(
             hintText: hintText,
+            counterText: '',
             prefixIcon: Icon(prefixIcon, color: Colors.grey.shade600),
+            filled: true,
+            fillColor: Colors.grey.shade50,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.primary, width: 1),
+              borderSide: BorderSide(color: _primaryColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.primary, width: 2),
+              borderSide: BorderSide(color: _primaryColor, width: 2),
             ),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            counterText: '',
           ),
         ),
       ],
@@ -712,9 +761,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.grey.shade300,
-          ),
+          border: Border.all(color: Colors.grey.shade300),
         ),
         child: Row(
           children: [
@@ -722,12 +769,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: _primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.upload_file,
-                color: AppColors.primary,
+                color: _primaryColor,
                 size: 24,
               ),
             ),
@@ -765,174 +812,70 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
-  Widget _buildDocumentUploadCard({
-    required String title,
-    required String subtitle,
-    required VoidCallback onUpload,
-  }) {
-    return GestureDetector(
-      onTap: onUpload,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.grey.shade300,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.description_outlined,
-                color: AppColors.primary,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Upload',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Helper Methods
   IconData _getVehicleIcon(String vehicle) {
     switch (vehicle) {
-      case 'Motorcycle': return Icons.motorcycle;
-      case 'Car': return Icons.directions_car;
-      case 'Auto Rickshaw': return Icons.moped;
-      case 'Mini Truck': return Icons.local_shipping;
-      case 'Truck': return Icons.fire_truck;
-      default: return Icons.directions_car;
+      case 'Motorcycle':
+        return Icons.motorcycle;
+      case 'Car':
+        return Icons.directions_car;
+      case 'Auto Rickshaw':
+        return Icons.moped;
+      case 'Mini Truck':
+        return Icons.local_shipping;
+      case 'Truck':
+        return Icons.fire_truck;
+      default:
+        return Icons.directions_car;
     }
   }
 
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      _dateOfBirthController.text = '${picked.day}/${picked.month}/${picked.year}';
-    }
-  }
-
-  void _goToNextStep() {
-    if (_currentStep < 4) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    } else {
-      // Submit form
-      _submitForm();
-    }
-  }
-
-  void _goToPreviousStep() {
-    if (_currentStep > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
-  Future<void> _submitForm() async {
+  Future<void> _showSuccessDialog() async {
     final prefs = await SharedPreferences.getInstance();
     final role = prefs.getString('user_role');
-    print('User role from prefs: $role');
 
-    // Handle form submission
-    print('Form Submitted');
-    print('Name: ${_firstNameController.text} ${_lastNameController.text}');
-    print('Vehicle Type: $_selectedVehicleType');
-    
-    // Show success dialog or navigate
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Registration Submitted'),
-        content: const Text('Your registration has been submitted successfully. We will contact you soon.'),
+      barrierDismissible: false, // ❌ bahar click se close nahi hoga
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Registration Successful'),
+        content: const Text(
+          'Your registration has been completed successfully.',
+        ),
         actions: [
           TextButton(
             onPressed: () {
-              context.pop(); // Close dialog
-              if (role == 'rider') {
-                context.go('/home');
+              Navigator.pop(context); // dialog close
+
+              // 🔥 ROLE BASED REDIRECT
+              if (role == 'food') {
+                context.go(AppConstants.routeFood);
+              } else if (role == 'rider') {
+                context.go(AppConstants.routeRide);
               } else if (role == 'porter') {
-                context.go('/porter-dashboard');
+                context.go(AppConstants.routePorter);
               } else {
-                // fallback (safety)
-                context.go('/login');
+                context.go(AppConstants.routeLogin);
               }
             },
-            child: const Text('OK'),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: _primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _dateOfBirthController.dispose();
-    _stateController.dispose();
-    _districtController.dispose();
-    _addressController.dispose();
-    _pincodeController.dispose();
-    _aadharController.dispose();
-    _panController.dispose();
-    super.dispose();
-  }
+
+
+
+
+
 }

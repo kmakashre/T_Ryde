@@ -164,6 +164,13 @@ class AppColors {
   static const Color white70 = Colors.white70;
 
 
+  // ---------------------------
+  // Brown / Coffee Theme Colors  ⭐ NEW
+  // ---------------------------
+  static const Color brownPrimary = Color(0xFF5B3E31); // main brown
+  static const Color brownLight = Color(0xFF8D6E63);
+  static const Color brownDark = Color(0xFF3E2723);
+  static const Color brownBackground = Color(0xFFF3EAE6);
     static const Color greyText = Colors.white;
 
   // static Color? get greyText => null;
