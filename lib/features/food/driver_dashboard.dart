@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:tryde_partner/features/food/partner_profile_screen.dart';
 import 'package:tryde_partner/features/food/wallet_screen.dart';
+import '../../core/constants/color_constants.dart';
 import 'order_req_screen.dart';
+
+double sw(BuildContext context) => MediaQuery.of(context).size.width;
+double sh(BuildContext context) => MediaQuery.of(context).size.height;
 
 /// ===================== MAIN DASHBOARD =====================
 class PartnerDashboardScreen extends StatefulWidget {
@@ -16,7 +20,7 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> {
   int _currentIndex = 0;
   bool _isOnline = true;
 
-  late final List<Widget> _screens = const [
+  final List<Widget> _screens = const [
     DashboardHome(),
     OrderListScreen(),
     WalletScreen(),
@@ -26,6 +30,7 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.grey100,
       appBar: _buildAppBar(),
       body: _screens[_currentIndex],
       bottomNavigationBar: PartnerBottomNav(
@@ -37,40 +42,25 @@ class _PartnerDashboardScreenState extends State<PartnerDashboardScreen> {
 
   AppBar _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.white,
       elevation: 0,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
           Text("Good Afternoon 👋",
-              style: TextStyle(fontSize: 12, color: Colors.grey)),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           Text("Delivery Partner",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ],
       ),
       actions: [
         GestureDetector(
-          onTap: () {
-            setState(() => _isOnline = !_isOnline);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  _isOnline
-                      ? "You are Online – Waiting for orders"
-                      : "You are Offline",
-                ),
-              ),
-            );
-          },
+          onTap: () => setState(() => _isOnline = !_isOnline),
           child: _OnlineStatusChip(isOnline: _isOnline),
         ),
         IconButton(
-          icon: const Icon(Icons.notifications_none, color: Colors.black),
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("No new notifications")),
-            );
-          },
+          icon: const Icon(Icons.notifications_none),
+          onPressed: () {},
         ),
       ],
     );
@@ -83,37 +73,47 @@ class DashboardHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            EarningsHeroCard(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const WalletScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(sw(context) * 0.04),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          EarningsHeroCard(),
+          SizedBox(height: 20),
 
-            const Text(
-              "Performance",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            const PerformanceInsights(),
-            const SizedBox(height: 20),
+          SectionTitle("Earnings Summary"),
+          SizedBox(height: 10),
+          EarningsSummary(),
 
-            const RecentOrdersSection(),
-            const SizedBox(height: 20),
+          SizedBox(height: 30),
+          SectionTitle("Order History"),
+          OrderHistory(),
 
-            const RatingsCard(),
-          ],
-        ),
+          SizedBox(height: 20),
+          SectionTitle("Wallet Balance"),
+          WalletBalanceCard(),
+
+          SizedBox(height: 20),
+          SectionTitle("Ratings & Reviews"),
+          RatingsCard(),
+        ],
+      ),
+    );
+  }
+}
+
+/// ===================== SECTION TITLE =====================
+class SectionTitle extends StatelessWidget {
+  final String title;
+  const SectionTitle(this.title, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: sw(context) * 0.045,
+        fontWeight: FontWeight.bold,
       ),
     );
   }
@@ -128,174 +128,272 @@ class _OnlineStatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: isOnline
-            ? Colors.green.withOpacity(0.15)
-            : Colors.red.withOpacity(0.15),
+            ? AppColors.success.withOpacity(0.15)
+            : AppColors.error.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         isOnline ? "ONLINE" : "OFFLINE",
         style: TextStyle(
-          color: isOnline ? Colors.green : Colors.red,
           fontWeight: FontWeight.bold,
+          color: isOnline ? AppColors.success : AppColors.error,
         ),
       ),
     );
   }
 }
 
-/// ===================== EARNINGS =====================
+/// ===================== EARNINGS HERO =====================
 class EarningsHeroCard extends StatelessWidget {
-  final VoidCallback onTap;
-  final String amount;
-  final String subtitle;
-
-  const EarningsHeroCard({
-    super.key,
-    required this.onTap,
-    this.amount = "₹1,240",
-    this.subtitle = "TODAY'S EARNINGS",
-  });
+  const EarningsHeroCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFF6A00), Color(0xFFFF8F00)],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.orange.withOpacity(0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(subtitle,
-                style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    letterSpacing: 1.1)),
-            const SizedBox(height: 10),
-            Row(
-              children: const [
-                Text("₹1,240",
-                    style: TextStyle(
-                        fontSize: 38,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
-                Spacer(),
-                Icon(Icons.arrow_forward_ios,
-                    size: 18, color: Colors.white70),
+    return Material(
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () {
+          debugPrint("Today's Earnings tapped");
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const WalletScreen()),
+          );
+        },
+        child: Container(
+          width: double.infinity, // 🔥 FULL WIDTH
+          padding: EdgeInsets.all(sw(context) * 0.06),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            gradient: const LinearGradient(
+              colors: [
+                AppColors.foodPrimary,
+                AppColors.foodPrimaryDark,
               ],
             ),
-          ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "TODAY'S EARNINGS",
+                style: TextStyle(
+                  color: AppColors.white70,
+                  fontSize: sw(context) * 0.03,
+                ),
+              ),
+              SizedBox(height: sw(context) * 0.02),
+              Text(
+                "₹1,240",
+                style: TextStyle(
+                  fontSize: sw(context) * 0.1,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+
   }
 }
 
-/// ===================== PERFORMANCE =====================
-class PerformanceInsights extends StatelessWidget {
-  const PerformanceInsights({super.key});
+/// ===================== EARNINGS SUMMARY =====================
+class EarningsSummary extends StatelessWidget {
+  const EarningsSummary({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 110,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: const [
-          _InsightCard("Completion", "96%"),
-          _InsightCard("Avg Time", "22 min"),
-          _InsightCard("Acceptance", "92%"),
-        ],
-      ),
-    );
-  }
-}
-
-class _InsightCard extends StatelessWidget {
-  final String title;
-  final String value;
-  const _InsightCard(this.title, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05), blurRadius: 12),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value,
-              style:
-              const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const Spacer(),
-          Text(title, style: const TextStyle(color: Colors.grey)),
-        ],
-      ),
-    );
-  }
-}
-
-/// ===================== RECENT ORDERS =====================
-class RecentOrdersSection extends StatelessWidget {
-  const RecentOrdersSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: const [
-        Text("Recent Orders",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        SizedBox(height: 8),
-        _OrderCard(name: "Burger King", status: "Completed", color: Colors.green),
-        _OrderCard(name: "Domino's", status: "In Progress", color: Colors.orange),
-        _OrderCard(name: "KFC", status: "Cancelled", color: Colors.red),
+        _SummaryTile("Today", "₹1,240", Icons.today, AppColors.success),
+        _SummaryTile("Week", "₹6,520", Icons.date_range, AppColors.foodPrimary),
+        _SummaryTile("Month", "₹24,300", Icons.calendar_month, AppColors.warning),
       ],
     );
   }
 }
 
-class _OrderCard extends StatelessWidget {
-  final String name;
-  final String status;
+class _SummaryTile extends StatelessWidget {
+  final String title, value;
+  final IconData icon;
   final Color color;
 
-  const _OrderCard(
-      {required this.name, required this.status, required this.color});
+  const _SummaryTile(this.title, this.value, this.icon, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    final w = sw(context);
+
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: EdgeInsets.symmetric(
+          vertical: w * 0.03,
+          horizontal: w * 0.02,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withOpacity(0.04),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: w * 0.045, // smaller icon
+            ),
+            SizedBox(height: w * 0.01),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: w * 0.035, // smaller text
+              ),
+            ),
+            SizedBox(height: w * 0.005),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: w * 0.028,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ===================== ORDER HISTORY =====================
+class OrderHistory extends StatelessWidget {
+  const OrderHistory({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: const [
+        _OrderRow("Domino's Pizza", "#ORD1023", "Completed", AppColors.success),
+        _OrderRow("KFC", "#ORD1021", "Cancelled", AppColors.error),
+        _OrderRow("Burger King", "#ORD1019", "Completed", AppColors.success),
+      ],
+    );
+  }
+}
+
+class _OrderRow extends StatelessWidget {
+  final String name, orderId, status;
+  final Color color;
+
+  const _OrderRow(this.name, this.orderId, this.status, this.color);
 
   @override
   Widget build(BuildContext context) {
     return _PremiumCard(
-      child: ListTile(
-        title: Text(name),
-        trailing: Chip(
-          label: Text(status),
-          backgroundColor: color.withOpacity(0.15),
-          labelStyle: TextStyle(color: color),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            debugPrint("Order tapped: $orderId");
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OrderListScreen(),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(4), // tap area better
+            child: Row(
+              children: [
+                const Icon(Icons.restaurant,
+                    color: AppColors.foodPrimary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        orderId,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Chip(
+                  label: Text(status),
+                  backgroundColor: color.withOpacity(0.15),
+                  labelStyle: TextStyle(color: color),
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ===================== WALLET =====================
+class WalletBalanceCard extends StatelessWidget {
+  const WalletBalanceCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _PremiumCard(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => WalletScreen()),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Row(
+              children: const [
+                Icon(
+                  Icons.account_balance_wallet,
+                  color: AppColors.foodPrimary,
+                  size: 30,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  "₹3,480",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -311,11 +409,10 @@ class RatingsCard extends StatelessWidget {
     return _PremiumCard(
       child: Row(
         children: const [
-          Icon(Icons.star, color: Colors.amber, size: 32),
+          Icon(Icons.star, color: AppColors.warning, size: 30),
           SizedBox(width: 10),
           Text("4.7 / 5",
-              style:
-              TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -330,14 +427,17 @@ class _PremiumCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(sw(context) * 0.04),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05), blurRadius: 10),
+            color: AppColors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
       child: child,
@@ -358,8 +458,8 @@ class PartnerBottomNav extends StatelessWidget {
     return BottomNavigationBar(
       currentIndex: currentIndex,
       onTap: onTap,
-      selectedItemColor: const Color(0xFFFF6A00),
-      unselectedItemColor: Colors.grey,
+      selectedItemColor: AppColors.foodPrimary,
+      unselectedItemColor: AppColors.textSecondary,
       type: BottomNavigationBarType.fixed,
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),

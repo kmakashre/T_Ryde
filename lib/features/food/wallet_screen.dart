@@ -3,51 +3,63 @@ import 'package:flutter/material.dart';
 class WalletScreen extends StatelessWidget {
   const WalletScreen({super.key});
 
+  double sw(BuildContext context) => MediaQuery.of(context).size.width;
+  double sh(BuildContext context) => MediaQuery.of(context).size.height;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _walletCard(),
-            const SizedBox(height: 20),
-            _summaryRow(),
-            const SizedBox(height: 20),
-            _transactionTitle(),
-            _transactionTile("Order #1234", "+ ₹120"),
-            _transactionTile("Order #1233", "+ ₹95"),
-            _transactionTile("Order #1232", "+ ₹140"),
-          ],
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(sw(context) * 0.04),
+          child: Column(
+            children: [
+              _walletCard(context),
+              SizedBox(height: sh(context) * 0.025),
+              _summaryRow(context),
+              SizedBox(height: sh(context) * 0.025),
+              _transactionTitle(context),
+              SizedBox(height: sh(context) * 0.01),
+              _transactionTile(context, "Order #1234", "+ ₹120"),
+              SizedBox(height: sh(context) * 0.01),
+              _transactionTile(context, "Order #1233", "+ ₹95"),
+              SizedBox(height: sh(context) * 0.01),
+              _transactionTile(context, "Order #1232", "+ ₹140"),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _walletCard() {
+  /// ================= WALLET CARD =================
+  Widget _walletCard(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(sw(context) * 0.05),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Colors.green, Colors.teal],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(sw(context) * 0.05),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
             "Wallet Balance",
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: sw(context) * 0.035,
+            ),
           ),
-          SizedBox(height: 6),
+          SizedBox(height: sh(context) * 0.008),
           Text(
             "₹ 2,450",
             style: TextStyle(
               color: Colors.white,
-              fontSize: 26,
+              fontSize: sw(context) * 0.07,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -56,34 +68,48 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  Widget _summaryRow() {
+  /// ================= SUMMARY ROW =================
+  Widget _summaryRow(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _summaryBox("Today", "₹420"),
-        _summaryBox("Orders", "8"),
-        _summaryBox("Rating", "4.8 ⭐"),
+        _summaryBox(context, "Today", "₹420"),
+        _summaryBox(context, "Orders", "8"),
+        _summaryBox(context, "Rating", "4.8 ⭐"),
       ],
     );
   }
 
-  Widget _summaryBox(String title, String value) {
+  Widget _summaryBox(BuildContext context, String title, String value) {
     return Container(
-      width: 100,
-      padding: const EdgeInsets.all(12),
+      width: sw(context) * 0.28,
+      padding: EdgeInsets.all(sw(context) * 0.035),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(sw(context) * 0.04),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Text(title, style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 6),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: sw(context) * 0.032,
+            ),
+          ),
+          SizedBox(height: sh(context) * 0.006),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: sw(context) * 0.04,
             ),
           ),
         ],
@@ -91,29 +117,48 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  Widget _transactionTitle() {
-    return const Align(
+  /// ================= TRANSACTION TITLE =================
+  Widget _transactionTitle(BuildContext context) {
+    return Align(
       alignment: Alignment.centerLeft,
       child: Text(
         "Recent Transactions",
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: sw(context) * 0.045,
+        ),
       ),
     );
   }
 
-  Widget _transactionTile(String title, String amount) {
-    return ListTile(
-      leading: const Icon(Icons.receipt_long),
-      title: Text(title),
-      trailing: Text(
-        amount,
-        style: const TextStyle(
-          color: Colors.green,
-          fontWeight: FontWeight.bold,
+  /// ================= TRANSACTION TILE =================
+  Widget _transactionTile(
+      BuildContext context, String title, String amount) {
+    return Container(
+      margin: EdgeInsets.only(bottom: sh(context) * 0.01),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(sw(context) * 0.04),
+      ),
+      child: ListTile(
+        leading: Icon(
+          Icons.receipt_long,
+          size: sw(context) * 0.06,
+          color: Colors.teal,
+        ),
+        title: Text(
+          title,
+          style: TextStyle(fontSize: sw(context) * 0.04),
+        ),
+        trailing: Text(
+          amount,
+          style: TextStyle(
+            color: Colors.green,
+            fontWeight: FontWeight.bold,
+            fontSize: sw(context) * 0.04,
+          ),
         ),
       ),
-      tileColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }
