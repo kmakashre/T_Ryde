@@ -60,6 +60,8 @@ dependencies:
   video_player: ^2.10.1
   flutter_animate: ^4.5.2
   page_transition: ^2.2.1
+  flutter_tts: ^3.8.5
+
 
 dev_dependencies:
   flutter_test:
